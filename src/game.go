@@ -16,17 +16,20 @@ var fontFace = text.NewGoXFace(bitmapfont.Face)
 
 // ----------------------------------------------------------------------------
 type Game struct {
-	bases       []HomeBase
-	bouncers    []Bouncer
-	ebitenImage *ebiten.Image
-	action      int
-	isOver      bool
+	bases              []HomeBase
+	bouncers           []Bouncer
+	ebitenImage        *ebiten.Image
+	action             int
+	isOver             bool
+	fireDelaySec       float64
+	ticksUntilNextFire int
 }
 
 // ----------------------------------------------------------------------------
 func (g *Game) initNewGame() {
 	g.bases = []HomeBase{createPlayerHomeBase(), createEnemyHomeBase()}
 	g.ebitenImage = ebiten.NewImage(SCREEN_WIDTH, SCREEN_HEIGHT)
+	g.fireDelaySec = 0.5
 }
 
 // ----------------------------------------------------------------------------
@@ -37,6 +40,12 @@ func (g *Game) initBouncers() {
 // ----------------------------------------------------------------------------
 func (g *Game) Update() error {
 	if ebiten.IsFocused() && !g.isOver {
+
+		// count down until user can fire again
+		if g.ticksUntilNextFire > 0 {
+			g.ticksUntilNextFire--
+		}
+
 		// handle user interaction
 		dx, _ := ebiten.Wheel()
 
@@ -51,7 +60,8 @@ func (g *Game) Update() error {
 		}
 
 		if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-			if g.bases[PLAYER_SIDE].bouncersAvailable > 0 {
+			if g.ticksUntilNextFire == 0 && g.bases[PLAYER_SIDE].bouncersAvailable > 0 {
+				g.ticksUntilNextFire = int(g.fireDelaySec * ebiten.ActualTPS())
 				g.bases[PLAYER_SIDE].bouncersAvailable -= 1
 				b := Bouncer{}
 				b.Init(g.bases[PLAYER_SIDE])
@@ -83,7 +93,8 @@ func (g *Game) Update() error {
 			}
 
 			if ebiten.IsKeyPressed(ebiten.KeySpace) {
-				if g.bases[PLAYER_SIDE].bouncersAvailable > 0 {
+				if g.ticksUntilNextFire == 0 && g.bases[PLAYER_SIDE].bouncersAvailable > 0 {
+					g.ticksUntilNextFire = int(g.fireDelaySec * ebiten.ActualTPS())
 					g.bases[PLAYER_SIDE].bouncersAvailable -= 1
 					b := Bouncer{}
 					b.Init(g.bases[PLAYER_SIDE])
